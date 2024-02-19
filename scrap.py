@@ -4,66 +4,76 @@ from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 import time
 import hashlib
+import multiprocessing
 
+def run_tabl_script():
+    # Code de votre script tabl.py
+    print("Le script tabl.py est en cours d'exécution.")
+
+# Reste du code pour le scraping
 url = 'https://tv.eva.gg/game-histories?locationId=14'
 chrome_options = Options()
 chrome_options.add_argument('--headless')
-chrome_options.add_argument('--log-level=3')  # Définir le niveau de journalisation sur "info" ou "fatal"
+chrome_options.add_argument('--log-level=3')
 
-driver = webdriver.Chrome(options=chrome_options)
+while True:
+    try:
+        # Initialisation du navigateur
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.get(url)
 
-driver.get(url)
+        # Attendez que la page soit complètement chargée
+        time.sleep(1)
 
-# Attendez que la page soit complètement chargée
-time.sleep(1)
+        # Récupérez le code source de la page après le chargement complet
+        html = driver.page_source
 
-# Récupérez le code source de la page après le chargement complet
-html = driver.page_source
+        # Utilisez BeautifulSoup pour analyser le HTML
+        soup = BeautifulSoup(html, 'html.parser')
 
-# Utilisez BeautifulSoup pour analyser le HTML
-soup = BeautifulSoup(html, 'html.parser')
+        # Récupérez le contenu initial de l'élément avec la classe spécifique
+        initial_content = soup.find('div', class_='display-2 lh-1 ff-gotham-bold').text.strip()
 
-# Récupérez le contenu initial des div text-truncate
-initial_content_hashes = [hashlib.sha256(str(element.text).encode('utf-8')).hexdigest() for element in soup.find_all('div', class_='text-truncate')]
+        # Générez un nom de fichier unique en utilisant le timestamp actuel
+        filename = 'index.html'
 
-# Générez un nom de fichier unique en utilisant le timestamp actuel
-filename = 'index.html'
-
-# Enregistrez le code source dans un fichier HTML pour la première itération
-with open(filename, 'w', encoding='utf-8') as file:
-    file.write(str(soup.prettify()))
-
-try:
-    # Récupérez le code source de la page après le chargement complet
-    html = driver.page_source
-    time.sleep(30)  # Attendez 30 secondes
-
-    # Actualisez la page pour déclencher le chargement dynamique
-    driver.refresh()
-
-    # Attendez que la page soit complètement chargée après l'actualisation
-    time.sleep(1)
-
-    # Utilisez BeautifulSoup pour analyser le HTML
-    soup = BeautifulSoup(html, 'html.parser')
-
-    # Récupérez le nouveau contenu des div text-truncate
-    new_content_hashes = [hashlib.sha256(str(element.text).encode('utf-8')).hexdigest() for element in soup.find_all('div', class_='text-truncate')]
-
-    # Comparez les empreintes pour déterminer si le contenu a changé
-    if new_content_hashes != initial_content_hashes:
-        # Le contenu a changé ou c'est la première itération, enregistrez le code source dans le fichier index.html
+        # Enregistrez le code source dans un fichier HTML pour la première itération
         with open(filename, 'w', encoding='utf-8') as file:
             file.write(str(soup.prettify()))
 
-        # Mettez à jour les empreintes pour le nouveau contenu
-        initial_content_hashes = new_content_hashes
+        while True:
+            # Actualisez la page pour déclencher le chargement dynamique
+            driver.refresh()
 
-        # Lancer le script tabl.py
-        subprocess.run(['python3', 'tabl.py'])
-except KeyboardInterrupt:
-    # Interrompre la boucle si l'utilisateur appuie sur Ctrl+C
-    pass
-finally:
-    # Fermez le navigateur à la fin
-    driver.quit()
+            # Attendez que la page soit complètement chargée après l'actualisation
+            time.sleep(3)
+
+            # Récupérez le code source de la page après le chargement complet
+            html = driver.page_source
+
+            # Utilisez BeautifulSoup pour analyser le HTML
+            soup = BeautifulSoup(html, 'html.parser')
+
+            # Récupérez le nouveau contenu de l'élément avec la classe spécifique
+            new_content = soup.find('div', class_='display-2 lh-1 ff-gotham-bold').text.strip()
+
+            # Comparez les textes pour déterminer si le contenu a changé
+            if new_content != initial_content:
+                # Le contenu a changé, enregistrez le code source dans le fichier index.html
+                with open(filename, 'w', encoding='utf-8') as file:
+                    file.write(str(soup.prettify()))
+
+                # Mettez à jour le contenu initial pour le nouveau contenu
+                initial_content = new_content
+
+                # Lancer le script tabl.py en tant que processus indépendant
+                tabl_process = multiprocessing.Process(target=run_tabl_script)
+                tabl_process.start()
+
+    except KeyboardInterrupt:
+        print("Arrêt du script suite à une interruption de l'utilisateur.")
+        break
+    finally:
+        print("Fermeture du navigateur.")
+        # Fermez le navigateur à la fin de chaque itération
+        driver.quit()

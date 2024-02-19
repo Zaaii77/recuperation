@@ -8,7 +8,7 @@ TELEGRAM_BOT_TOKEN = '6815472586:AAGC9qxCl2oJT5Mw-m6Gch97t0WcsGjvCX8'
 TELEGRAM_CHANNEL_ID = '@evalyon'
 
 # Charger le fichier HTML
-with open('mvp_perdant.html', 'r', encoding='utf-8') as file:
+with open('index.html', 'r', encoding='utf-8') as file:
     content = file.read()
 
 # Analyser le HTML avec BeautifulSoup
@@ -79,7 +79,7 @@ if len(tables) == 2:
     # Envoyer le message au canal Telegram de manière asynchrone
     async def send_telegram_message():
         bot = Bot(token=TELEGRAM_BOT_TOKEN)
-        message = f"Le MVP est {joueur_max_score_global}."
+        message = f"Partie fini, Le MVP est {joueur_max_score_global}."
         await bot.send_message(chat_id=TELEGRAM_CHANNEL_ID, text=message, parse_mode='Markdown')
 
     # Exécuter la fonction asynchrone pour envoyer le message au canal Telegram
