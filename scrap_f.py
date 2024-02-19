@@ -14,6 +14,7 @@ def run_tabl_script():
 url = 'https://tv.eva.gg/game-histories?locationId=14'
 
 firefox_options = FirefoxOptions()
+firefox_options.set_capability("moz:firefoxOptions", {"log": {"level": "trace", "file": "/chemin/vers/geckodriver.log"}})
 firefox_options.headless = True
 
 while True:
