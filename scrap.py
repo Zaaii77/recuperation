@@ -140,10 +140,9 @@ while True:
                 tabl_process = multiprocessing.Process(target=run_table_script)
                 tabl_process.start()
 
-    except KeyboardInterrupt:
-        print("Arrêt du script suite à une interruption de l'utilisateur.")
-        break
+    except Exception as e:
+        print(f"Une exception s'est produite : {e}")
+
     finally:
-        print("Fermeture du navigateur.")
-        # Fermez le navigateur à la fin de chaque itération
+        # Assurez-vous de fermer correctement le navigateur, même en cas d'exception
         driver.quit()
