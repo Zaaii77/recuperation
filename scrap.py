@@ -5,10 +5,80 @@ from bs4 import BeautifulSoup
 import time
 import hashlib
 import multiprocessing
+import asyncio
+from bs4 import BeautifulSoup
+import pandas as pd
+from telegram import Bot
 
-def run_tabl_script():
-    # Code de votre script tabl.py
-    print("Le script tabl.py est en cours d'exécution.")
+def run_table_script():
+
+
+    async def send_telegram_message(TELEGRAM_BOT_TOKEN, TELEGRAM_CHANNEL_ID, message):
+        bot = Bot(token=TELEGRAM_BOT_TOKEN)
+        await bot.send_message(chat_id=TELEGRAM_CHANNEL_ID, text=message, parse_mode='Markdown')
+
+    # Charger le contenu HTML depuis le fichier index.html
+    with open('index.html', 'r', encoding='utf-8') as file:
+        content = file.read()
+
+    # Analyser le HTML avec BeautifulSoup
+    soup = BeautifulSoup(content, 'html.parser')
+
+    # Vérifier si la div spécifique existe
+    specific_div = soup.find('div', class_='display-2 lh-1 ff-gotham-bold text-uppercase')
+    if specific_div:
+        # Extraire le premier tableau
+        table1 = soup.find_all('table', class_='table table-borderless')[0]  # Le premier tableau
+        if table1:
+            # Extraire les données du premier tableau
+            data1 = []
+            for row in table1.find_all('tr'):
+                cols = [col.text.strip() for col in row.find_all(['td', 'th'])]
+                data1.append(cols)
+
+            # Créer un DataFrame pandas à partir des données du premier tableau
+            df1 = pd.DataFrame(data1)
+
+        # Extraire le deuxième tableau
+        table2 = soup.find_all('table', class_='table table-borderless')[1]  # Le deuxième tableau
+        if table2:
+            # Extraire les données du deuxième tableau
+            data2 = []
+            for row in table2.find_all('tr'):
+                cols = [col.text.strip() for col in row.find_all(['td', 'th'])]
+                data2.append(cols)
+
+            # Créer un DataFrame pandas à partir des données du deuxième tableau
+            df2 = pd.DataFrame(data2)
+
+            # Aligner les colonnes du deuxième tableau avec celles du premier tableau
+            if len(df2.columns) > len(df1.columns):
+                df2 = df2.iloc[:, :len(df1.columns)]
+            
+            # Concaténer les deux DataFrames en un seul, en évitant la répétition des en-têtes
+            merged_df = pd.concat([df1, df2], ignore_index=True)
+
+            # Enregistrer le tableau fusionné dans un fichier CSV sans les en-têtes et les indices de colonnes
+            merged_df.to_csv('tableau_fusionne.csv', index=False, header=False)
+            print("Tableau fusionné enregistré avec succès dans tableau_fusionne.csv")
+
+            # Trouver le pseudo du joueur avec le plus gros score
+            joueur_max_score_row = merged_df[merged_df[2].str.isnumeric()][2].astype(int).idxmax()
+            joueur_max_score = merged_df.loc[joueur_max_score_row][0]
+            max_score = merged_df.loc[joueur_max_score_row][2]
+
+            # Envoyer le message au canal Telegram de manière asynchrone
+            TELEGRAM_BOT_TOKEN = '6815472586:AAGC9qxCl2oJT5Mw-m6Gch97t0WcsGjvCX8'
+            TELEGRAM_CHANNEL_ID = '@evalyon'
+
+            asyncio.run(send_telegram_message(TELEGRAM_BOT_TOKEN, TELEGRAM_CHANNEL_ID, f"Le joueur avec le plus gros score est {joueur_max_score} avec un score de {max_score}."))
+
+        else:
+            print("Erreur : Deuxième tableau non trouvé.")
+    else:
+        print("Erreur : Div spécifique non trouvée.")
+
+        print("Le script table.py est en cours d'exécution.")
 
 # Reste du code pour le scraping
 url = 'https://tv.eva.gg/game-histories?locationId=14'
@@ -67,7 +137,7 @@ while True:
                 initial_content = new_content
 
                 # Lancer le script tabl.py en tant que processus indépendant
-                tabl_process = multiprocessing.Process(target=run_tabl_script)
+                tabl_process = multiprocessing.Process(target=run_table_script)
                 tabl_process.start()
 
     except KeyboardInterrupt:
