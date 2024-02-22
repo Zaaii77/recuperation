@@ -62,19 +62,23 @@ def run_table_script():
                 print("Tableau fusionné enregistré avec succès dans tableau_fusionne.csv")
 
                 # Trouver le pseudo du joueur avec le plus gros score
-                joueur_max_score_row = merged_df[merged_df[2].str.isnumeric()][2].astype(int).idxmax()
-                joueur_max_score = merged_df.loc[joueur_max_score_row][0]
-                max_score = merged_df.loc[joueur_max_score_row][2]
+                numeric_rows = merged_df[merged_df.applymap(lambda x: x.isnumeric() if isinstance(x, str) else False).any(axis=1)]
+                if not numeric_rows.empty:
+                    max_score_row = numeric_rows[numeric_rows.iloc[:, 2].astype(int).idxmax()]
+                    joueur_max_score = max_score_row.iloc[0]
+                    max_score = max_score_row.iloc[2]
 
-                # Envoyer le message au canal Telegram de manière asynchrone
-                TELEGRAM_BOT_TOKEN = '6815472586:AAGC9qxCl2oJT5Mw-m6Gch97t0WcsGjvCX8'
-                TELEGRAM_CHANNEL_ID = '@evalyon'
+                    # Envoyer le message au canal Telegram de manière asynchrone
+                    TELEGRAM_BOT_TOKEN = '6815472586:AAGC9qxCl2oJT5Mw-m6Gch97t0WcsGjvCX8'
+                    TELEGRAM_CHANNEL_ID = '@evalyon'
 
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
 
-                loop.run_until_complete(send_telegram_message(TELEGRAM_BOT_TOKEN, TELEGRAM_CHANNEL_ID, f"Le joueur avec le plus gros score est {joueur_max_score} avec un score de {max_score}."))
+                    loop.run_until_complete(send_telegram_message(TELEGRAM_BOT_TOKEN, TELEGRAM_CHANNEL_ID, f"Le joueur avec le plus gros score est {joueur_max_score} avec un score de {max_score}."))
 
+                else:
+                    print("Erreur : Aucune donnée numérique trouvée dans les tableaux.")
             else:
                 print("Erreur : Deuxième tableau non trouvé.")
         else:
